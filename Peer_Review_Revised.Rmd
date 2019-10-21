@@ -1,0 +1,73 @@
+---
+title: "Peer_Review_Revised"
+output: html_document
+---
+
+Please create a R_Markdown file. File->New file-> R_Markdown
+
+1. When reading in files using read.delim, you should specify which delimiter the files are using.
+2. The file path did not work on my local repository. So I modified it as following in order for my inspections of your script to continue:
+3. When reading in local file, you want to make sure the current working directory has the files you want to read into R. 
+4. I did not find your corresponding code for the fang_et_al_genotypes.txt, so I added that code below:
+
+##reading in raw files
+```{r}
+snp <- read_tsv("./snp_position.txt")
+View(snp)
+
+fang_et_al <- read_tsv("./fang_et_al_genotypes.txt")
+```
+
+Your rename function did not work for the snp_f varialbe, the Sample_ID is still Sample_ID after running your script.
+I used your snp_final varialbe instead of your snp_f in order to proceed the code:
+In your merge step, the following code did not work so I modified it:
+
+##merging(original code)
+```{r}
+merge( snp_f, maize_final, by="SNP_ID", all=TRUE) -> maize_snp
+merge( snp_final, teosinte_final, by="SNP_ID", all=TRUE) -> teosinte_snp
+```
+
+##merging(revised code)
+```{r}
+merge(snp_final, maize_final) -> maize_snp
+merge(snp_final, teosinte_final) -> teosinte_snp
+```
+
+I really like that you used a for loop! It is very neat and clean. I will adapt that to my own code as well.
+
+When arranging files by descending orders with missing value encoded by "-/-", you could consider replace the missing values at the beginning, so that you dont have to do it multiple times.
+
+For line 190 of your script, I did not find snp_cut varialbe. It could be a typo?
+##Your code
+```{r}
+#merging it with the modified SNP file(containing only the first three columns)
+merge( snp_cut, fang_final, by="SNP_ID", all=TRUE) -> fang_snp
+```
+
+
+I modified your snp_cut to snp_final for the remaining code to work
+##My revised code
+```{r}
+#merging it with the modified SNP file(containing only the first three columns)
+merge( snp_final, fang_final, by="SNP_ID", all=TRUE) -> fang_snp
+```
+
+
+When you are counting heterozygous, you are also including missing value. You need to specify and seperate those two. Below is the revised code:
+#counting heterozygous
+```{r}
+hetero <- (fang_melt$value!="A/A" | fang_melt$value!="C/C" | fang_melt$value!= "G/G" | fang_melt$value!= "T/T" | fang_melt$value!="?/?" )
+
+missing <- (fang_melt$value=="?/?")
+```
+
+
+You could try using geom_density instead of geom_point in the following code, it might give you a better visualization.
+```{r}
+#plotting a graph to show the snps grouped by chromosome
+ggplot(fang_snp, aes (Chromosome, SNP_ID)) + geom_point(color = 'blue', size = 2) + theme(axis.text.y = element_blank())
+#Use a file with just two columns - snp_ID and position
+```
+
+Good job! Keep working hard :)
