@@ -1,5 +1,22 @@
-```
+---
+title: "R_code"
+output: html_document
+---
 
+```
+```{r}
+library(reshape2)
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(plyr)
+
+#reading new files
+snp <- read_tsv("./snp_position.txt")
+View(snp)
+fang_et_al <- read_tsv("./fang_et_al_genotypes.txt")
+View(fang_et_al)
 #to modify the SNP file
 snp <- read.delim("~/Documents/Classes/BCB 546X/snp_positions.txt")
 View(snp)
@@ -10,8 +27,9 @@ filter(fang_et_al, Group %in% c("ZMMIL", "ZMMLR", "ZMMMR")) -> maize
 filter(fang_et_al, Group %in% c("ZMPBA", "ZMPIL", "ZMPJA")) -> teosinte
 ```
 ```
-#rename the first column in SNP file to merge 
-rename(snp_sort, Sample_ID = SNP_ID) -> snp_f
+```
+
+```{r}
 #transposing the maize and teosinte files
 t(maize) -> t_maize
 t(teosinte) -> t_teosinte
@@ -19,11 +37,9 @@ t(teosinte) -> t_teosinte
 data.frame(SNP_ID=rownames(t_maize), t_maize, row.names=NULL, check.names=FALSE) -> maize_final
 #same for teosinte
 data.frame(SNP_ID=rownames(t_teosinte), t_teosinte, row.names=NULL, check.names=FALSE) -> teosinte_final
-```
-```
 #merging
-merge( snp_f, maize_final, by="SNP_ID", all=TRUE) -> maize_snp
-merge( snp_f, teosinte_final, by="SNP_ID", all=TRUE) -> teosinte_snp
+merge( snp_sort, maize_final, by="SNP_ID", all=TRUE) -> maize_snp
+merge( snp_sort, teosinte_final, by="SNP_ID", all=TRUE) -> teosinte_snp
 #for sorting into chromosomes using a loop
 for(i in 1:10){
   temp <- filter(maize_snp, Chromosome == i)
@@ -37,6 +53,9 @@ for(i in 1:10){
 ```
 
 ```
+```
+
+```{r}
 #reading the teosinte and maize files that were saved and written into the local repository - this will change depending on your local folder - tried to modify this step but couldn't 
 
 teosinte_chr10 <- read.csv("~/Documents/Classes/BCB 546X/teosinte_chr10.csv")
@@ -84,6 +103,7 @@ temp <- arrange(maize_chr9, Position)
 write.csv(temp, paste("maize_inc_9",".csv",sep=""),row.names=F)
 temp <- arrange(maize_chr10, Position) 
 write.csv(temp, paste("maize_inc_10",".csv",sep=""),row.names=F)
+
 
 #arranging the chr files in decreasing order 
 temp <- arrange(maize_chr1, desc(Position)) 
@@ -180,6 +200,8 @@ write.csv(temp1, paste("teosinte_dec_10",".csv",sep=""),row.names=F)
 
 ```
 ```
+```
+```{r}
 #GGPLOT
 
 #transposing the fang file 
@@ -187,7 +209,7 @@ t(fang_et_al) -> t_fang
 #naming the first nameless column in this file
 data.frame(SNP_ID=rownames(t_fang), t_fang, row.names=NULL, check.names=FALSE) -> fang_final
 #merging it with the modified SNP file(containing only the first three columns)
-merge( snp_cut, fang_final, by="SNP_ID", all=TRUE) -> fang_snp
+merge(snp_sort, fang_final, by="SNP_ID", all=TRUE) -> fang_snp
 #ggplot to view the distribution of groups in the fang file
 ggplot(fang_et_al, aes(Group)) + geom_bar()
 # ZMMIL, ZMMLR and ZMPBA contribute to the most counts
@@ -198,29 +220,34 @@ fang_melt <- melt(fang_et_al, measure.vars = headers_names)
 ishomo <- (fang_melt$value=="A/A" | fang_melt$value=="C/C" | fang_melt$value=="G/G" | fang_melt$value=="T/T" )
 #counting heterozygous
 hetero <- (fang_melt$value!="A/A" | fang_melt$value!="C/C" | fang_melt$value!= "G/G" | fang_melt$value!= "T/T" )
+#counting missing values
+fang_melt[ fang_melt == "?/?"] -> missing
+
 #sorting according to ID
 arrange(fang_melt, Sample_ID) -> fang_ID_sort
 #sorting acording to group
 arrange(fang_melt, Group) -> fang_group_sort
 #counting and grouping iin separate files
-count_ID <- ddply(fang_ID_sort, c("Sample_ID"), summarise, count_homozygous=sum(ishomo, na.rm=TRUE), count_heterozygous=sum(!ishomo, na.rm=TRUE), isNA=sum(is.na(ishomo)))
+count_ID <- ddply(fang_ID_sort, c("Sample_ID"), summarise, count_homozygous=sum(ishomo, na.rm=TRUE), count_heterozygous=sum(!ishomo, na.rm=TRUE), missing=sum(is.na(ishomo)))
 #melting 
-count_ID_melt <- melt(count_ID, measure.vars = c("count_homozygous", "count_heterozygous", "isNA"))
+count_ID_melt <- melt(count_ID, measure.vars = c("count_homozygous", "count_heterozygous", "missing"))
 #plotting this
 ggplot(count_ID_melt,aes(x = Sample_ID, y= value, fill=variable)) + geom_bar(stat = "identity", position ="stack")
 #Doing this for grouped data
 count_group <- ddply(fang_group_sort, c("Sample_ID"), summarise, count_homozygous=sum(ishomo, na.rm=TRUE), count_heterozygous=sum(!ishomo, na.rm=TRUE), isNA=sum(is.na(ishomo)))
 #melting to make this pretty
-count_group_melt <- melt(count_ID, measure.vars = c("count_homozygous", "count_heterozygous", "isNA"))
+count_group_melt <- melt(count_ID, measure.vars = c("count_homozygous", "count_heterozygous", "missing"))
 #plotting a graph
 ggplot(count_ID_melt,aes(x = Sample_ID, y= value, fill=variable)) + geom_bar(stat = "identity", position ="stack")
 #plotting a graph to show the snps grouped by chromosome
-ggplot(fang_snp, aes (Chromosome, SNP_ID)) + geom_point(color = 'blue', size = 2) + theme(axis.text.y = element_blank())
-#Use a file with just two columns - snp_ID and position
-ggplot(snp_pos, aes (Position, SNP_ID)) + geom_point(color = 'red', size = 2) + theme(axis.text.y = element_blank())
-#Plotting a graph to show Chromosomal distribution of the SNPs
-ggplot(snp_positions, aes (Position, Chromosome)) + geom_point(color = 'red', size = 2) + theme(axis.text.x = element_blank())
+ggplot(data = fang_snp) + geom_density(mapping=aes(x = Chromosome, fill = Chromosome), alpha = 0.15) + theme(axis.text.y = element_blank())
+#SHowing SNp positions varying with chromosomes
+ggplot(fang_snp,aes(x = Chromosome, y= Position)) + geom_bar(stat = "identity", color= "blue") + theme(axis.text.y = element_blank())
+
 ```
+```
+
+
 
 
 
